@@ -13,8 +13,10 @@ import android.widget.Toast;
 import androidx.appcompat.app.AppCompatActivity;
 import com.example.final_project_test.MainActivity;
 import com.example.final_project_test.R;
-import net.objecthunter.exp4j.Expression;
-import net.objecthunter.exp4j.ExpressionBuilder;
+import java.math.BigDecimal;
+import java.math.RoundingMode;
+import java.text.DecimalFormat;
+
 
 public class MainActivity3 extends AppCompatActivity {
     private EditText inputEditText;
@@ -49,6 +51,51 @@ public class MainActivity3 extends AppCompatActivity {
 
     // 角度單位
     private String[] angleUnits = {"度(°)", "弧度(rad)", "弧分(′)", "弧秒(″)"};
+
+    // 轉換率（使用 BigDecimal）
+    private final BigDecimal[] lengthConversionRates = {
+            BigDecimal.ONE,
+            new BigDecimal("1000"),
+            new BigDecimal("0.01"),
+            new BigDecimal("0.001"),
+            new BigDecimal("0.0254"),
+            new BigDecimal("0.3048"),
+            new BigDecimal("0.9144")
+    };
+
+    private final BigDecimal[] weightConversionRates = {
+            BigDecimal.ONE,
+            new BigDecimal("1000"),
+            new BigDecimal("0.001"),
+            new BigDecimal("0.45359237"),
+            new BigDecimal("0.0283495")
+    };
+
+    private final BigDecimal[] energyConversionRates = {
+            BigDecimal.ONE,
+            new BigDecimal("0.239005736"),
+            new BigDecimal("0.947817120"),
+            new BigDecimal("3.6"),
+            new BigDecimal("2.684519537")
+    };
+
+    private final BigDecimal[] areaConversionRates = {
+            BigDecimal.ONE,
+            new BigDecimal("0.0001"),
+            new BigDecimal("0.000001"),
+            new BigDecimal("0.836127360"),
+            new BigDecimal("0.092903040"),
+            new BigDecimal("0.000645160")
+    };
+
+    private final BigDecimal[] volumeConversionRates = {
+            BigDecimal.ONE,
+            new BigDecimal("0.158987294928"),
+            new BigDecimal("0.764554857984"),
+            new BigDecimal("0.000016387064"),
+            new BigDecimal("0.001"),
+            new BigDecimal("0.003785411784")
+    };
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -93,7 +140,6 @@ public class MainActivity3 extends AppCompatActivity {
         updateUnitSpinners(0);  // 根據索引 0（預設選項）更新單位選擇器
     }
 
-
     // 初始化UI元件
     private void initializeUIElements() {
         inputEditText = findViewById(R.id.inputEditText);
@@ -105,7 +151,6 @@ public class MainActivity3 extends AppCompatActivity {
         resultTextView = findViewById(R.id.resultTextView);
 
         button_home = findViewById(R.id.button_home);
-
         button0 = findViewById(R.id.button0);
         button1 = findViewById(R.id.button1);
         button2 = findViewById(R.id.button2);
@@ -137,9 +182,7 @@ public class MainActivity3 extends AppCompatActivity {
             numberButtons[i].setOnClickListener(v -> updateTextView(value)); // 將按下的數字或小數點插入到輸入框中
         }
 
-
         /* 特殊按鈕 */
-
         // 刪除單一字元按鈕
         button_return.setOnClickListener(v -> deleteOneCharacter());
         // 刪除全部字元按鈕
@@ -200,7 +243,7 @@ public class MainActivity3 extends AppCompatActivity {
     // 刪除全部字元
     private void clearAllText() {
         // 清空 EditText 的內容
-       inputEditText.setText("");
+        inputEditText.setText("");
     }
 
     // 左移游標
@@ -224,10 +267,9 @@ public class MainActivity3 extends AppCompatActivity {
 
         // 確保游標不會超出右邊界 (游標不能大於文字長度)
         if (cursorPosition < textLength) {
-           inputEditText.setSelection(cursorPosition + 1); // 將游標向右移動
+            inputEditText.setSelection(cursorPosition + 1); // 將游標向右移動
         }
     }
-
 
     // 根據選擇的類別更新單位下拉選單
     private void updateUnitSpinners(int categoryPosition) {
@@ -282,9 +324,9 @@ public class MainActivity3 extends AppCompatActivity {
             return;
         }
 
-        double inputValue;
+        BigDecimal inputValue;
         try {
-            inputValue = Double.parseDouble(inputText);
+            inputValue = new BigDecimal(inputText);
         } catch (NumberFormatException e) {
             Toast.makeText(this, "請輸入有效的數值", Toast.LENGTH_SHORT).show();
             return;
@@ -294,7 +336,7 @@ public class MainActivity3 extends AppCompatActivity {
         int fromUnitPosition = fromUnitSpinner.getSelectedItemPosition();
         int toUnitPosition = toUnitSpinner.getSelectedItemPosition();
 
-        double result = 0;
+        BigDecimal result;
 
         switch (categoryPosition) {
             case 0: // 長度轉換
@@ -318,39 +360,63 @@ public class MainActivity3 extends AppCompatActivity {
             case 6: // 角度轉換
                 result = convertAngle(inputValue, fromUnitPosition, toUnitPosition);
                 break;
+            default:
+                return;
         }
 
-        // 顯示結果
-        resultTextView.setText(String.format("%.4f", result));
-    }
-    // 長度轉換（以公尺為基準）
-    private double convertLength(double value, int fromUnit, int toUnit) {
-        double[] lengthConversionRates = {1, 1000, 0.01, 0.001, 0.0254, 0.3048, 0.9144};
-        return value * lengthConversionRates[fromUnit] / lengthConversionRates[toUnit];
+        // 使用動態格式化顯示結果
+        String formattedResult = formatResult(result);
+        resultTextView.setText(formattedResult);
     }
 
-    // 重量轉換（以公斤為基準）
-    private double convertWeight(double value, int fromUnit, int toUnit) {
-        double[] weightConversionRates = {1, 1000, 0.001, 0.45359237, 0.0283495};
-        return value * weightConversionRates[fromUnit] / weightConversionRates[toUnit];
+    // 格式化結果，去除不必要的零
+    private String formatResult(BigDecimal value) {
+        // 移除尾隨的零，如果是整數則不顯示小數點
+        String result = value.stripTrailingZeros().toPlainString();
+
+        // 如果數值過大或過小，使用科學記數法
+        if (result.length() > 15 || (result.contains(".") && result.substring(result.indexOf(".")).length() > 10)) {
+            DecimalFormat scientificFormat = new DecimalFormat("0.######E0");
+            return scientificFormat.format(value);
+        }
+
+        return result;
+    }
+
+    // 長度轉換
+    private BigDecimal convertLength(BigDecimal value, int fromUnit, int toUnit) {
+        if (fromUnit == toUnit) return value;
+        return value.multiply(lengthConversionRates[fromUnit])
+                .divide(lengthConversionRates[toUnit], 15, RoundingMode.HALF_UP);
+    }
+
+    // 重量轉換
+    private BigDecimal convertWeight(BigDecimal value, int fromUnit, int toUnit) {
+        if (fromUnit == toUnit) return value;
+        return value.multiply(weightConversionRates[fromUnit])
+                .divide(weightConversionRates[toUnit], 15, RoundingMode.HALF_UP);
     }
 
     // 溫度轉換
-    private double convertTemperature(double value, int fromUnit, int toUnit) {
+    private BigDecimal convertTemperature(BigDecimal value, int fromUnit, int toUnit) {
         if (fromUnit == toUnit) return value;
 
         // 先轉換成攝氏
-        double celsius = value;
+        BigDecimal celsius;
         switch (fromUnit) {
             case 0: // 攝氏
                 celsius = value;
                 break;
             case 1: // 華氏
-                celsius = (value - 32) * 5 / 9;
+                celsius = value.subtract(new BigDecimal("32"))
+                        .multiply(new BigDecimal("5"))
+                        .divide(new BigDecimal("9"), 15, RoundingMode.HALF_UP);
                 break;
             case 2: // 克氏
-                celsius = value - 273.15;
+                celsius = value.subtract(new BigDecimal("273.15"));
                 break;
+            default:
+                return value;
         }
 
         // 從攝氏轉換到目標單位
@@ -358,63 +424,81 @@ public class MainActivity3 extends AppCompatActivity {
             case 0: // 攝氏
                 return celsius;
             case 1: // 華氏
-                return celsius * 9 / 5 + 32;
+                return celsius.multiply(new BigDecimal("9"))
+                        .divide(new BigDecimal("5"), 15, RoundingMode.HALF_UP)
+                        .add(new BigDecimal("32"));
             case 2: // 克氏
-                return celsius + 273.15;
+                return celsius.add(new BigDecimal("273.15"));
+            default:
+                return value;
         }
-
-        return value;
     }
 
-    // 能量轉換（以千焦為基準）
-    private double convertEnergy(double value, int fromUnit, int toUnit) {
-        double[] energyConversionRates = {1, 0.24, 0.95, 3.6, 3.6 * 1.34102};
-        return value * energyConversionRates[fromUnit] / energyConversionRates[toUnit];
+    // 能量轉換
+    private BigDecimal convertEnergy(BigDecimal value, int fromUnit, int toUnit) {
+        if (fromUnit == toUnit) return value;
+        return value.multiply(energyConversionRates[fromUnit])
+                .divide(energyConversionRates[toUnit], 15, RoundingMode.HALF_UP);
     }
 
-    // 面積轉換（以平方公尺為基準）
-    private double convertArea(double value, int fromUnit, int toUnit) {
-        double[] areaConversionRates = {1, 10000, 1000000, 1.195990046, 10.7639104, 1550};
-        return value * areaConversionRates[fromUnit] / areaConversionRates[toUnit];
+    // 面積轉換
+    private BigDecimal convertArea(BigDecimal value, int fromUnit, int toUnit) {
+        if (fromUnit == toUnit) return value;
+        return value.multiply(areaConversionRates[fromUnit])
+                .divide(areaConversionRates[toUnit], 15, RoundingMode.HALF_UP);
     }
 
-    // 體積轉換（以立方公尺為基準）
-    private double convertVolume(double value, int fromUnit, int toUnit) {
-        double[] volumeConversionRates = {1, 0.158987, 1.308, 61023.74, 1000, 264.172};
-        return value * volumeConversionRates[fromUnit] / volumeConversionRates[toUnit];
+    // 體積轉換
+    private BigDecimal convertVolume(BigDecimal value, int fromUnit, int toUnit) {
+        if (fromUnit == toUnit) return value;
+        return value.multiply(volumeConversionRates[fromUnit])
+                .divide(volumeConversionRates[toUnit], 15, RoundingMode.HALF_UP);
     }
 
-    // 角度轉換（360度 = 2π弧度 = 21600弧分 = 1296000弧秒）
-    private double convertAngle(double value, int fromUnit, int toUnit) {
+    // 角度轉換
+    private BigDecimal convertAngle(BigDecimal value, int fromUnit, int toUnit) {
         if (fromUnit == toUnit) return value;
 
-        double radians = value;
+        // 常數定義
+        final BigDecimal PI = new BigDecimal("3.141592653589793");
+        final BigDecimal DEG_TO_RAD = PI.divide(new BigDecimal("180"), 15, RoundingMode.HALF_UP);
+        final BigDecimal ARCMIN_TO_RAD = PI.divide(new BigDecimal("10800"), 15, RoundingMode.HALF_UP);
+        final BigDecimal ARCSEC_TO_RAD = PI.divide(new BigDecimal("648000"), 15, RoundingMode.HALF_UP);
+
+        // 先轉換成弧度
+        BigDecimal radians;
         switch (fromUnit) {
             case 0: // 度
-                radians = value * Math.PI / 180;
+                radians = value.multiply(DEG_TO_RAD);
                 break;
             case 1: // 弧度
                 radians = value;
                 break;
             case 2: // 弧分
-                radians = value * Math.PI / 10800;
+                radians = value.multiply(ARCMIN_TO_RAD);
                 break;
             case 3: // 弧秒
-                radians = value * Math.PI / 648000;
+                radians = value.multiply(ARCSEC_TO_RAD);
                 break;
+            default:
+                return value;
         }
 
+        // 從弧度轉換到目標單位
         switch (toUnit) {
             case 0: // 度
-                return radians * 180 / Math.PI;
+                return radians.divide(DEG_TO_RAD, 15, RoundingMode.HALF_UP);
             case 1: // 弧度
                 return radians;
             case 2: // 弧分
-                return radians * 10800 / Math.PI;
+                return radians.divide(ARCMIN_TO_RAD, 15, RoundingMode.HALF_UP);
             case 3: // 弧秒
-                return radians * 648000 / Math.PI;
+                return radians.divide(ARCSEC_TO_RAD, 15, RoundingMode.HALF_UP);
+            default:
+                return value;
         }
-
-        return value;
     }
 }
+
+
+

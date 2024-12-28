@@ -17,11 +17,6 @@ public class ExchangeRateResponse {
     // 儲存 API 響應的結果狀態（例如 "success" 或 "error"）
     private String result;
 
-    // 獲取匯率映射，return 一個 Map，其中鍵是貨幣代碼，值是匯率。
-    public Map<String, Double> getConversionRates() {
-        return conversionRates;
-    }
-
     // 獲取特定貨幣的匯率。[currency]要查詢的貨幣代碼（例如 "USD", "EUR"），
     public Double getRate(String currency) {
         // 從 conversionRates Map 中提取指定貨幣的匯率

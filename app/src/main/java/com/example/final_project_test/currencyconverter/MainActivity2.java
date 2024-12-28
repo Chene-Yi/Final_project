@@ -323,13 +323,13 @@ public class MainActivity2 extends AppCompatActivity {
         // 取得用戶輸入的金額並移除多餘空格
         String amountStr = amountEditText.getText().toString().trim();
 
-        //  // 檢查金額字符串中是否包含運算符號，若包含運算符則無法進行換算
+        //  檢查金額字符串中是否包含運算符號，若包含運算符則無法進行換算
         if (amountStr.contains("+") || amountStr.contains("-") || amountStr.contains("×") || amountStr.contains("÷")) {
             Toast.makeText(this, "因存在運算符號無法轉換", Toast.LENGTH_SHORT).show();
             return;
         }
 
-        //  // 如果當前匯率尚未獲取，顯示提示並退出
+        //  如果當前匯率尚未獲取，顯示提示並退出
         if (currentRates == null) {
             Toast.makeText(this, "尚未載入匯率，請稍後", Toast.LENGTH_SHORT).show();
             return;
@@ -339,11 +339,11 @@ public class MainActivity2 extends AppCompatActivity {
             // 嘗試將金額字符串轉換為 Double 型別
             double amount = Double.parseDouble(amountStr);
 
-            // 根據來源和目標貨幣代碼獲取相應的匯率
+            // 根據來源和目標貨幣代碼獲取相應的匯率，使用 ExchangeRateResponse 的 currentRates.getRate 方法
             double fromRate = currentRates.getRate(fromCurrency);
             double toRate = currentRates.getRate(toCurrency);
 
-            // 使用 exchangeRateManager 進行貨幣換算
+            // 使用 exchangeRateManager 的 convertCurrency 方法進行貨幣換算
             double convertedAmount = exchangeRateManager.convertCurrency(amount, fromRate, toRate);
 
             // 將結果格式化為字符串並顯示在界面上
